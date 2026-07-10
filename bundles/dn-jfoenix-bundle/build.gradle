@@ -2,7 +2,6 @@ project.version = ''
 
 repositories {
     mavenLocal()
-    jcenter()
     mavenCentral()
 }
 

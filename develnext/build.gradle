@@ -6,7 +6,6 @@ project.ext.distVersion = System.getProperty("version", "SNAPSHOT");
 
 repositories {
     mavenLocal()
-    jcenter()
     mavenCentral()
 
     repositories {

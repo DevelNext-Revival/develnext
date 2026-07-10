@@ -260,7 +260,7 @@ public class UXAbstractCodeArea<T extends AbstractCodeArea> extends UXRegion<Abs
             Paragraph<Collection<String>, String, Collection<String>> paragraph = getWrappedObject().getParagraph(line);
 
             ArrayMemory result = ArrayMemory.createHashed();
-            result.put("text", paragraph.getText());
+            result.put("text", StringMemory.valueOf(paragraph.getText()));
             result.put("segments", ArrayMemory.ofStringCollection(paragraph.getSegments()));
             result.put("style", ArrayMemory.ofStringCollection(paragraph.getParagraphStyle()));
 
