@@ -9,7 +9,7 @@
 	url = https://github.com/DevelNext-Revival/wizard-framework.git
 [submodule "3rd-party/jphp-gui-ext"]
 	path = 3rd-party/jphp-gui-ext
-	url = https://github.com/jphp-group/jphp-gui-ext.git
+	url = https://github.com/DevelNext-Revival/jphp-gui-ext.git
 [submodule "3rd-party/jphp-zip-ext"]
 	path = 3rd-party/jphp-zip-ext
-	url = https://github.com/jphp-group/jphp-zip-ext.git
+	url = https://github.com/DevelNext-Revival/jphp-zip-ext.git
