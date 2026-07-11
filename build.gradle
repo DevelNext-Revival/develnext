@@ -2,6 +2,16 @@ import org.gradle.internal.os.OperatingSystem;
 
 def javaVersion = '1.8';
 
+// Selects which Java/JavaFX runtime this build targets: '8' (default, unchanged) bundles a
+// Java 8 JRE with JavaFX built in, same as always. '11' (-PjavaTarget=11) instead depends on
+// OpenJFX 11 explicitly where needed (JavaFX isn't JDK-bundled from Java 9 onward) and swaps
+// in Java-11-compatible artifact versions (e.g. RichTextFX) -- see develnext/build.gradle for
+// the packaging side, and jphp-gui-tabs-ext/build.gradle for why some modules also need a
+// forked, newer javac just to read those artifacts' class files (Java 8's javac tops out at
+// class file version 52; OpenJFX 11/RichTextFX 0.11 are 54/55).
+def javaTarget = project.hasProperty('javaTarget') ? project.javaTarget : '8'
+def modernJdkHome = System.getenv('JDK11_HOME') ?: '/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home'
+
 buildscript {
     ext {
         projectGroup = "org.develnext"
@@ -23,6 +33,7 @@ allprojects {
 
     project.group = 'org.develnext'
     project.version = projectVersion
+    project.ext.javaTarget = javaTarget
 
     sourceCompatibility = javaVersion
     targetCompatibility = javaVersion
@@ -30,6 +41,39 @@ allprojects {
     repositories {
         mavenLocal()
         mavenCentral()
+    }
+
+    // Only matters for -PjavaTarget=11 builds needing to read a dependency's newer class
+    // files (see the javaTarget comment above); the default javaTarget=8 build is completely
+    // unaffected; still emits Java 8 bytecode either way via sourceCompatibility above.
+    //
+    // jphp-gui-tabs-ext's main sourceSet is exempt: it always needs to compile against FX8's
+    // bundled com.sun.javafx.scene.control.skin.TabPaneSkin for DnDTabPaneSkin.java, which
+    // doesn't exist under OpenJFX 11 at all, regardless of the overall build's javaTarget --
+    // see jphp-gui-tabs-ext/build.gradle's separate fx9 source set for its FX9+ counterpart.
+    if (javaTarget == '11' && project.name != 'jphp-gui-tabs-ext') {
+        def modernJavac = file("$modernJdkHome/bin/javac")
+
+        if (modernJavac.file) {
+            tasks.withType(JavaCompile) {
+                options.fork = true
+                options.forkOptions.executable = modernJavac.path
+
+                // Forking to an external javac executable (rather than an in-process/daemon
+                // compiler) makes Gradle 2.10 silently drop sourceCompatibility/targetCompatibility
+                // instead of translating them to -source/-target -- the forked javac then falls
+                // back to ITS OWN default (e.g. class file version 65/Java 21 for a JDK 21 javac),
+                // regardless of this project's declared 1.8 target. Confirmed by inspecting actual
+                // compiled .class bytes before this fix (developnext-designer, develnext-launcher
+                // were emitting version 65 despite sourceCompatibility=1.8 above). Read via doFirst,
+                // not at closure-registration time, so per-task overrides (e.g. jphp-gui-tabs-ext's
+                // compileFx9Java, which sets sourceCompatibility='9' later in ITS OWN build.gradle)
+                // are already applied by the time this reads them.
+                doFirst {
+                    options.compilerArgs.addAll(['-source', sourceCompatibility, '-target', targetCompatibility])
+                }
+            }
+        }
     }
 
     task sourcesJar(type: Jar, dependsOn: 'classes') {
@@ -43,6 +87,21 @@ allprojects {
 
     sourceSets {
         main { compileClasspath += configurations.provided }
+    }
+
+    // JavaFX is bundled inside the JDK on Java 8 (the default target above), so no project
+    // in this build has ever needed to declare it as a dependency -- javafx.* just resolves
+    // via the compiler's own bundled classes. From Java 9 onward it's a separate artifact, so
+    // -PjavaTarget=11 needs it added explicitly, uniformly across every project, since almost
+    // all of them reference javafx.* directly. Provided-only: never bundled at runtime, since
+    // the actual JavaFX in use is whatever the jre11 runtime bundle supplies at packaging time.
+    // (jphp-gui-tabs-ext's main sourceSet is exempt for the same reason as above.)
+    if (javaTarget == '11' && project.name != 'jphp-gui-tabs-ext') {
+        dependencies {
+            ['base', 'graphics', 'controls', 'fxml', 'media', 'swing', 'web'].each { module ->
+                provided "org.openjfx:javafx-$module:11.0.2:mac"
+            }
+        }
     }
 }
 

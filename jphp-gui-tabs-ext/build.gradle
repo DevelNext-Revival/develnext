@@ -13,3 +13,64 @@ dependencies {
     compile "org.develnext.jphp:jphp-gui-ext:$jphpVersion"
     compile project(':develnext-designer')
 }
+
+// DnDTabPaneSkinFx9 (src/fx9/java) is the JavaFX 9+ fallback for DnDTabPaneSkin (src/main/java,
+// unchanged): JavaFX 9 rewrote TabPaneSkin as public API in a different package with a
+// different structure, so the two files need javafx.scene.control.skin.TabPaneSkin and
+// com.sun.javafx.scene.control.skin.TabPaneSkin respectively -- classes that don't coexist on
+// any real JavaFX classpath (FX8 only ever had the com.sun.* one; FX9+'s public artifacts don't
+// ship it at all). Compiling them as separate source sets lets each resolve against the
+// classpath it actually needs, while still merging into one jar whose runtime dispatch (see
+// DndTabPaneFactory) auto-detects which skin actually works.
+sourceSets {
+    fx9 {
+        java.srcDirs = ['src/fx9/java']
+        compileClasspath += sourceSets.main.output
+    }
+}
+
+configurations {
+    fx9Provided
+}
+
+sourceSets.fx9.compileClasspath += configurations.fx9Provided
+
+dependencies {
+    // OpenJFX 11 jars are class file version 54; Java 8's javac can only read up to 52, hence
+    // compileFx9Java forking to a newer JDK below. Provided-only: never bundled at runtime,
+    // since the actual JavaFX in use is whatever the running JVM already has (FX8's bundled
+    // classes, or an explicit OpenJFX dependency supplied alongside a Java 11 runtime).
+    fx9Provided "org.openjfx:javafx-base:11.0.2:mac"
+    fx9Provided "org.openjfx:javafx-graphics:11.0.2:mac"
+    fx9Provided "org.openjfx:javafx-controls:11.0.2:mac"
+}
+
+compileFx9Java {
+    // Explicit, rather than inheriting the project's 1.8 default: this source set needs at
+    // least Java 9 (javafx.scene.control.skin.TabPaneSkin didn't exist before that), and
+    // relying on whatever bytecode version the forking JDK below happens to default to would
+    // be wrong in the other direction -- without setting this, javac was emitting class file
+    // version 65 (Java 21) purely because that's what the forked compiler defaults to.
+    sourceCompatibility = '9'
+    targetCompatibility = '9'
+
+    def modernJdk = System.getenv('JDK11_HOME') ?: '/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home'
+    def modernJavac = file("$modernJdk/bin/javac")
+
+    if (modernJavac.file) {
+        options.fork = true
+        options.forkOptions.executable = modernJavac.path
+
+        // See root build.gradle's tasks.withType(JavaCompile) doFirst for why this is needed:
+        // forking to an external javac executable silently drops sourceCompatibility/
+        // targetCompatibility instead of translating them to -source/-target.
+        doFirst {
+            options.compilerArgs.addAll(['-source', sourceCompatibility, '-target', targetCompatibility])
+        }
+    }
+}
+
+jar {
+    dependsOn compileFx9Java
+    from sourceSets.fx9.output
+}

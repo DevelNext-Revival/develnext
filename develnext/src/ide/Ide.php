@@ -638,10 +638,10 @@ class Ide extends Application
     {
         $this->languages = [];
 
-        $directory = IdeSystem::getOwnFile('languages');
+        $directory = $this->getOwnFile('languages');
 
         if (self::isDevelopment() && !fs::isDir($directory)) {
-            $directory = IdeSystem::getOwnFile('misc/languages');
+            $directory = $this->getOwnFile('misc/languages');
         }
 
         fs::scan($directory, function ($path) {

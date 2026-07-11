@@ -12,5 +12,11 @@ dependencies {
     //compile 'com.fifesoft:autocomplete:2.5.8'
 
     //compile group: 'org.dockfx', name: 'DockFX', version: '1.0-SNAPSHOT'
-    compile group: 'org.fxmisc.richtext', name: 'richtextfx', version: '0.8.2'
+    // RichTextFX 0.8.2 has its own internal com.sun.javafx.* usage that only works against
+    // JavaFX 8's bundled classes; 0.11.0+ was rewritten against JavaFX 9+'s public API and
+    // requires Java 11+ (0.10.7 was the last Java-8-compatible release). Neither this module
+    // nor develnext-designer touches RichTextFX internals directly, so this is a pure
+    // dependency-version swap for the -PjavaTarget=11 build, not a source change.
+    def richTextFxVersion = project.ext.javaTarget == '11' ? '0.11.7' : '0.8.2'
+    compile group: 'org.fxmisc.richtext', name: 'richtextfx', version: richTextFxVersion
 }

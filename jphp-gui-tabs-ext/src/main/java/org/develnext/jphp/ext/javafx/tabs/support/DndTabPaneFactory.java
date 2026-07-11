@@ -89,10 +89,33 @@ public final class DndTabPaneFactory {
         DndTabPane tabPane = new DndTabPane() {
             @Override
             protected javafx.scene.control.Skin<?> createDefaultSkin() {
-                DnDTabPaneSkin skin = new DnDTabPaneSkin(this);
-                setup(feedbackType, pane, skin);
+                try {
+                    DnDTabPaneSkin skin = new DnDTabPaneSkin(this);
+                    setup(feedbackType, pane, skin);
 
-                return skin;
+                    return skin;
+                } catch (Throwable t) {
+                    // JavaFX 9+ moved TabPaneSkin's internals to the public
+                    // javafx.scene.control.skin package with a different structure, so the
+                    // FX8-only reflective skin above can't load/initialize there at all
+                    // (NoClassDefFoundError/NoSuchFieldException). Fall back to the FX9+
+                    // native implementation instead of failing to show the tab pane.
+                    //
+                    // Instantiated by name rather than referenced directly: DnDTabPaneSkinFx9
+                    // lives in a separate source set compiled against OpenJFX 11 (see
+                    // build.gradle), since its javafx.scene.control.skin.TabPaneSkin and this
+                    // class's com.sun.javafx.scene.control.skin.TabPaneSkin don't coexist on
+                    // any real JavaFX classpath -- a direct reference here would need this
+                    // file compiled against both at once, which isn't possible.
+                    try {
+                        return (javafx.scene.control.Skin<?>) Class
+                                .forName("org.develnext.jphp.ext.javafx.tabs.support.skin.DnDTabPaneSkinFx9")
+                                .getConstructor(TabPane.class)
+                                .newInstance(this);
+                    } catch (ReflectiveOperationException e) {
+                        throw new RuntimeException("Unable to create a tab pane skin for this JavaFX version", e);
+                    }
+                }
             }
         };
 

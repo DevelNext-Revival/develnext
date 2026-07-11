@@ -449,6 +449,121 @@ task distIdeMacDmg(dependsOn: ['fetchMacJre', 'clean', 'distIde']) {
     }
 }
 
+// Mirrors fetchMacJre, but for a Java 11 + JavaFX runtime: BellSoft's Liberica Full JDK 11
+// bundles JavaFX ("LibericaFX") the same way Zulu 8 FX does for Java 8. Unlike Java 8, Java
+// 9+ has no separate slim "JRE" package -- bundling means bundling the whole JDK.
+task fetchJre11Mac {
+    def jre11MacDir = file("$project.rootDir/develnext-tools/jre11Mac")
+    def libericaBuild = 'bellsoft-jdk11.0.31+11-macos-aarch64-full'
+
+    outputs.dir jre11MacDir
+
+    onlyIf { !jre11MacDir.directory }
+
+    doLast {
+        def archive = File.createTempFile('liberica11fx', '.tar.gz')
+        def extractDir = File.createTempDir('liberica11fx', 'extracted')
+
+        try {
+            println "Downloading $libericaBuild ..."
+            ant.get(src: "https://github.com/bell-sw/Liberica/releases/download/11.0.31+11/${libericaBuild}.tar.gz", dest: archive)
+
+            exec { commandLine 'tar', 'xzf', archive.path, '-C', extractDir.path }
+
+            jre11MacDir.parentFile.mkdirs()
+            // Unlike Zulu 8's macOS bundle (<build>/Contents/Home/jre), Liberica's tarball is a
+            // flat JDK layout with bin/, lib/, etc. directly under the top-level dir -- no
+            // Contents/Home wrapper (confirmed by inspecting the actual archive contents).
+            def jdkSrc = file("${extractDir}/jdk-11.0.31-full.jdk")
+            jdkSrc.renameTo(jre11MacDir)
+        } finally {
+            archive.delete()
+            extractDir.deleteDir()
+        }
+    }
+}
+
+// OpenJFX jars actually bundled into the packaged app's lib/ folder (unlike the same
+// artifacts declared `provided` in the root build.gradle, which are compile-time only).
+// Liberica Full JDK bundles its own JavaFX as JPMS modules, but this app is a plain
+// classpath application (DevelNext.jar's Class-Path manifest entry lists lib/*.jar), so it
+// needs JavaFX as ordinary jars on that same classpath rather than relying on the runtime
+// image's module path.
+configurations {
+    javaFx11Runtime
+}
+
+dependencies {
+    // transitive = false: each org.openjfx:*:mac artifact's own POM depends on the matching
+    // non-classified (no-native-libs) artifact, e.g. javafx-controls:11.0.2:mac -> javafx-base:
+    // 11.0.2 with no classifier. Left transitive, both the real -mac jar and that native-less
+    // stub end up side by side on lib/*'s wildcard classpath -- a split-package conflict where
+    // whichever jar the classloader picks first may be the one missing native bindings, which
+    // was observed to hang JavaFX's native toolkit init silently instead of failing loudly.
+    // Every module actually needed is already listed explicitly below, so nothing is lost by
+    // turning transitivity off.
+    ['base', 'graphics', 'controls', 'fxml', 'media', 'swing', 'web'].each { module ->
+        javaFx11Runtime("org.openjfx:javafx-$module:11.0.2:mac") { transitive = false }
+    }
+}
+
+task distIdeMacJava11Dmg(dependsOn: ['fetchJre11Mac', 'clean', 'distIde']) {
+    doFirst {
+        if (project.ext.javaTarget != '11') {
+            throw new GradleException("distIdeMacJava11Dmg must be run with -PjavaTarget=11 (was '${project.ext.javaTarget}')")
+        }
+    }
+
+    doLast {
+        def installDir = "$project.buildDir/install/$project.name"
+        def distDir = "$project.buildDir/distributions"
+
+        def jpackageBin = System.getProperty("jpackage.bin", "jpackage")
+        // Not `(distVersion =~ pattern)[0]` (as distIdeMacDmg above does): with a capturing
+        // group in the pattern, that indexing returns [wholeMatch, lastGroup] as a List, not a
+        // String -- jpackage would then get literally "[1.0.0, .0]" as --app-version.
+        def versionMatcher = project.ext.distVersion =~ /\d+(\.\d+)*/
+        def appVersion = versionMatcher.find() ? versionMatcher.group() : '1.0'
+
+        file(distDir).mkdirs()
+
+        // jpackage's --input scans the WHOLE install dir recursively for jars and puts every
+        // one of them on the launched app's classpath -- including distIde's normally-bundled
+        // per-platform Java 8 JRE folders (tools/jre, tools/jreLinux, tools/jreMac), which each
+        // carry their own rt.jar/jce.jar AND, critically, ext/jfxrt.jar (JavaFX 8's OWN
+        // javafx.* classes). Left in place, those end up on the classpath side by side with
+        // the real javafx-*-11.0.2-mac jars added below -- a mixed-version JavaFX split-package
+        // conflict that was observed to hang the app silently right after MainForm starts
+        // loading, with no exception and no window, rather than failing loudly. tools/jre11Mac
+        // doesn't need to be inside --input either: the runtime is supplied separately via
+        // --runtime-image below.
+        delete "$installDir/tools/jre"
+        delete "$installDir/tools/jreLinux"
+        delete "$installDir/tools/jreMac"
+        delete "$installDir/tools/jre11Mac"
+        delete "$installDir/tools/Launch4j"
+        delete "$installDir/tools/Launch4jLinux"
+
+        copy {
+            from configurations.javaFx11Runtime
+            into "$installDir/lib"
+        }
+
+        exec {
+            commandLine jpackageBin,
+                    '--type', 'dmg',
+                    '--name', 'DevelNext-Java11',
+                    '--input', installDir,
+                    '--main-jar', 'DevelNext.jar',
+                    '--runtime-image', "$project.rootDir/develnext-tools/jre11Mac",
+                    '--icon', "$project.rootDir/develnext/launcher/DevelNext.icns",
+                    '--mac-package-identifier', 'org.develnext.ide',
+                    '--app-version', appVersion,
+                    '--dest', distDir
+        }
+    }
+}
+
 task distAll(dependsOn: ['distIdeWindowsSetup', 'distIdeLinuxSetup']) {
 
 }
