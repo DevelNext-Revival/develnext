@@ -64,7 +64,7 @@ public class Launcher {
         }
     }
 
-    public void start() throws URISyntaxException, IOException {
+    public void start() throws URISyntaxException, IOException, InterruptedException {
         if (!isJava8FxExists()) {
             JOptionPane.showMessageDialog(null, "Oracle/Open Java Runtime 8+ required with JavaFX", "Error", JOptionPane.ERROR_MESSAGE);
             return;
@@ -74,7 +74,11 @@ public class Launcher {
 
         String[] jvmArgs = fetchJvmArgs();
 
-        jvmArgs = concatArrays(new String[]{"java"}, jvmArgs);
+        // Use the java binary that actually launched this process rather than a literal
+        // "java" resolved via PATH: PATH isn't guaranteed to point at the bundled runtime
+        // (e.g. a macOS .app launched via Finder/Dock gets a minimal PATH from launchd).
+        String javaBin = System.getProperty("java.home") + File.separator + "bin" + File.separator + "java";
+        jvmArgs = concatArrays(new String[]{javaBin}, jvmArgs);
 
         String[] args = concatArrays(jvmArgs, new String[]{
                 "-Ddevelnext.launcher=root",
@@ -84,10 +88,18 @@ public class Launcher {
         System.out.print(join(args, " "));
 
         processBuilder = new ProcessBuilder(args);
-        processBuilder.start();
+        processBuilder.inheritIO();
+        process = processBuilder.start();
+
+        // Wait for the real app instead of exiting right after spawning it: on macOS, this
+        // process is what launchd/RunningBoard track as "the app" for the whole bundle. If it
+        // exits immediately (as a fire-and-forget ProcessBuilder.start() would), macOS treats
+        // the app as quit and the orphaned child's windows never get composited by WindowServer,
+        // even though the child process itself keeps running fine. Harmless on Windows/Linux.
+        System.exit(process.waitFor());
     }
 
-    public static void main(String[] args) throws URISyntaxException, IOException {
+    public static void main(String[] args) throws URISyntaxException, IOException, InterruptedException {
         new Launcher().start();
     }
 

@@ -373,6 +373,82 @@ task distIdeLinuxSetup(type: Tar, dependsOn: ['clean', 'distIdeLinux']) {
     }
 }
 
+// Unlike tools/jre and tools/jreLinux, the mac JRE isn't checked into git: its WebKit
+// dylib alone is 138MB, over GitHub's 100MB hard limit, and this repo is a fork (GitHub
+// blocks Git LFS uploads to forks without purchased storage). Fetched on demand instead.
+task fetchMacJre {
+    def jreMacDir = file("$project.rootDir/develnext-tools/jreMac")
+    def zuluBuild = 'zulu8.94.0.17-ca-fx-jdk8.0.492-macosx_aarch64'
+
+    outputs.dir jreMacDir
+
+    onlyIf { !jreMacDir.directory }
+
+    doLast {
+        def archive = File.createTempFile('zulu8fx', '.tar.gz')
+        def extractDir = File.createTempDir('zulu8fx', 'extracted')
+
+        try {
+            println "Downloading $zuluBuild ..."
+            ant.get(src: "https://cdn.azul.com/zulu/bin/${zuluBuild}.tar.gz", dest: archive)
+
+            exec { commandLine 'tar', 'xzf', archive.path, '-C', extractDir.path }
+
+            jreMacDir.parentFile.mkdirs()
+            def jreSrc = file("${extractDir}/${zuluBuild}/Contents/Home/jre")
+            jreSrc.renameTo(jreMacDir)
+        } finally {
+            archive.delete()
+            extractDir.deleteDir()
+        }
+    }
+}
+
+task distIdeMac(dependsOn: ['fetchMacJre', 'distIde']) {
+    doLast {
+        delete "$project.buildDir/install/$project.name/tools/jre"
+        delete "$project.buildDir/install/$project.name/tools/Launch4j"
+        delete "$project.buildDir/install/$project.name/tools/Launch4jLinux"
+
+        copy {
+            from "$project.rootDir/develnext-tools/jreMac"
+            into "$project.buildDir/install/$project.name/tools/jre"
+        }
+    }
+}
+
+// Builds the .app/.dmg directly from distIde's output (not distIdeMac's), so tools/jre
+// is never copied into the input tree -- the mac JRE is supplied once, as the jpackage
+// runtime image, instead of being duplicated inside the app bundle too.
+task distIdeMacDmg(dependsOn: ['fetchMacJre', 'clean', 'distIde']) {
+    doLast {
+        def installDir = "$project.buildDir/install/$project.name"
+        def distDir = "$project.buildDir/distributions"
+
+        def jpackageBin = System.getProperty("jpackage.bin", "jpackage")
+        def appVersion = (project.ext.distVersion =~ /\d+(\.\d+)*/)[0] ?: '1.0'
+
+        file(distDir).mkdirs()
+
+        exec {
+            // DevelNext.jar (built by prepareDist) carries a Class-Path manifest entry
+            // pointing at ../lib/*.jar, the same way develnext/misc/DevelNext's plain
+            // `java -jar DevelNext.jar` launch already relies on for Linux -- so --input
+            // is the whole install dir (jar + lib/ side by side), not just lib/.
+            commandLine jpackageBin,
+                    '--type', 'dmg',
+                    '--name', 'DevelNext',
+                    '--input', installDir,
+                    '--main-jar', 'DevelNext.jar',
+                    '--runtime-image', "$project.rootDir/develnext-tools/jreMac",
+                    '--icon', "$project.rootDir/develnext/launcher/DevelNext.icns",
+                    '--mac-package-identifier', 'org.develnext.ide',
+                    '--app-version', appVersion,
+                    '--dest', distDir
+        }
+    }
+}
+
 task distAll(dependsOn: ['distIdeWindowsSetup', 'distIdeLinuxSetup']) {
 
 }

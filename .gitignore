@@ -30,3 +30,8 @@ vendor/
 develnext/misc/library/bundles/*/*.jar
 
 out/
+
+# Downloaded on demand by :develnext:fetchMacJre (see develnext/build.gradle) instead of
+# being checked in like jre/jreLinux: it's too large for this fork to push via Git LFS
+# (GitHub blocks LFS uploads to forks without purchased storage).
+/develnext-tools/jreMac/
