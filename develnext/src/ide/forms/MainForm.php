@@ -257,6 +257,36 @@ class MainForm extends AbstractIdeForm
             $menu->items->add($item);
         }
 
+        $themeMenu = $this->findSubMenu('menuTheme');
+        $themeMenu->items->clear();
+        $themeMenu->text = 'Theme';
+
+        $lightItem = new UXMenuItem('Light');
+        $darkItem = new UXMenuItem('Dark');
+
+        $refreshThemeCheckmarks = function () use ($lightItem, $darkItem) {
+            $checkIcon = Ide::get()->getImage('icons/ok16.png');
+            $isDark = Ide::get()->isDarkTheme();
+
+            $lightItem->graphic = $isDark ? null : $checkIcon;
+            $darkItem->graphic = $isDark ? $checkIcon : null;
+        };
+
+        $lightItem->on('action', function () use ($refreshThemeCheckmarks) {
+            Ide::get()->setDarkTheme(false);
+            $refreshThemeCheckmarks();
+        });
+
+        $darkItem->on('action', function () use ($refreshThemeCheckmarks) {
+            Ide::get()->setDarkTheme(true);
+            $refreshThemeCheckmarks();
+        });
+
+        $refreshThemeCheckmarks();
+
+        $themeMenu->items->add($lightItem);
+        $themeMenu->items->add($darkItem);
+
         $screen = UXScreen::getPrimary();
 
         $this->showBottom(null);

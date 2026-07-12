@@ -18,7 +18,6 @@ import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
-import javafx.scene.paint.Color;
 import javafx.util.Callback;
 import org.develnext.jphp.ext.javafx.classes.UXTableCell;
 import org.develnext.jphp.gui.designer.GuiDesignerExtension;
@@ -297,7 +296,13 @@ public class UXDesignProperties extends BaseObject {
             setAlignment(Pos.BASELINE_RIGHT);
             setPadding(new Insets(1, 5, 1, 1));
             setText(item == null ? null : item.toString());
-            setTextFill(Color.GRAY.darker());
+
+            // Was a hardcoded setTextFill(Color.GRAY.darker()) -- that bypasses CSS
+            // entirely (including the IDE's dark theme override), so this is a style
+            // class instead: see .dn-property-name-cell in .theme/style.css / dark.css.
+            if (!getStyleClass().contains("dn-property-name-cell")) {
+                getStyleClass().add("dn-property-name-cell");
+            }
         }
     }
 

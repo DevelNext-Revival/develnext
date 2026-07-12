@@ -28,6 +28,11 @@ if (!IdeSystem::isDevelopment()) {
 
 $app = new Ide();
 $app->addStyle('/.theme/style.css');
+
+if ($app->isDarkTheme()) {
+    $app->addStyle(Ide::DARK_THEME_STYLE);
+}
+
 $app->launch();
 
 function _($code, ...$args) {

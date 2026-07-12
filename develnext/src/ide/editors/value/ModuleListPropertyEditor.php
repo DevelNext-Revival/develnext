@@ -19,7 +19,8 @@ class ModuleListPropertyEditor extends TextPropertyEditor
 
         $this->editorForm = new ModuleListEditorForm();
 
-        $this->textField->style = '-fx-background-color: #fffe85; -fx-cursor: hand;';
+        $this->textField->classes->add('dn-module-list-field');
+        $this->textField->style = '-fx-cursor: hand;';
         $this->textField->promptText = 'редактировать';
         $this->textField->editable = false;
         $this->textField->on('click', function () {

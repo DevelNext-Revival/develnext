@@ -523,6 +523,34 @@ class Application
         unset($this->styles[$resource]);
     }
 
+    /** @var AbstractForm[] */
+    protected $liveForms = [];
+
+    /**
+     * Tracks every constructed form so app-wide changes (e.g. theme switching) can be
+     * applied live to whatever happens to be open, not just newly created windows.
+     *
+     * @param AbstractForm $form
+     */
+    public function registerLiveForm(AbstractForm $form)
+    {
+        $this->liveForms[spl_object_hash($form)] = $form;
+    }
+
+    /**
+     * @return AbstractForm[]
+     */
+    public function getLiveForms()
+    {
+        foreach ($this->liveForms as $key => $form) {
+            if (!$form->visible) {
+                unset($this->liveForms[$key]);
+            }
+        }
+
+        return $this->liveForms;
+    }
+
     public function loadModules(array $classes)
     {
         foreach ($classes as $class) {

@@ -128,6 +128,8 @@ abstract class AbstractForm extends UXForm
             $this->addStylesheet($one);
         }
 
+        $this->_app->registerLiveForm($this);
+
         $this->behaviourManager = $behaviourManager = new FormBehaviourManager($this);
 
         if ($loadBehaviours) {

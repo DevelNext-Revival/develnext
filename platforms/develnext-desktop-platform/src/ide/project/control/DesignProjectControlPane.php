@@ -19,6 +19,7 @@ use ide\utils\UiUtils;
 use php\gui\layout\UXHBox;
 use php\gui\layout\UXVBox;
 use php\gui\text\UXFont;
+use php\gui\UXComboBox;
 use php\gui\UXLabel;
 use php\gui\UXNode;
 use php\gui\UXSeparator;
@@ -38,6 +39,13 @@ class DesignProjectControlPane extends AbstractProjectControlPane
      * @var UXLabel
      */
     protected $uiSkinName;
+
+    /**
+     * @var UXComboBox
+     */
+    protected $uiThemeCombo;
+
+    const DARK_THEME_SKIN_UID = 'DarkTheme';
 
     /**
      * @var bool
@@ -140,7 +148,16 @@ class DesignProjectControlPane extends AbstractProjectControlPane
             new DesignProjectControlPane_SkinConvertToTheme($this),
         ]);
 
+        $this->uiThemeCombo = new UXComboBox(['Светлая', 'Тёмная']);
+        $this->uiThemeCombo->selectedIndex = 0;
+        $this->uiThemeCombo->on('action', function () {
+            $this->applyQuickTheme($this->uiThemeCombo->selectedIndex == 1);
+        });
+
         $pane = UiUtils::makeCommandPane([
+            new UXLabel('Тема:'),
+            $this->uiThemeCombo,
+            '-',
             $icon,
             $this->uiSkinName,
             '-',
@@ -179,6 +196,38 @@ class DesignProjectControlPane extends AbstractProjectControlPane
     }
 
     /**
+     * Quick Light/Dark shortcut for the full skin picker above -- applies the bundled
+     * "DarkTheme" library skin (or clears back to no skin), so devs get a working dark
+     * theme for their own app without having to build/import one themselves.
+     *
+     * @param bool $dark
+     */
+    protected function applyQuickTheme($dark)
+    {
+        $gui = GuiFrameworkProjectBehaviour::get();
+
+        if (!$gui) {
+            return;
+        }
+
+        if ($dark) {
+            $resource = Ide::get()->getLibrary()->getResource('skins', self::DARK_THEME_SKIN_UID);
+            $skin = $resource ? $resource->getSkin() : null;
+
+            if (!$skin) {
+                MessageBoxForm::warning('Скин "Тёмная тема" не найден в библиотеке.');
+                return;
+            }
+
+            $gui->applySkin($skin);
+        } else {
+            $gui->clearSkin();
+        }
+
+        $this->refresh();
+    }
+
+    /**
      * @return UXNode
      */
     protected function makeUi()
@@ -213,18 +262,24 @@ class DesignProjectControlPane extends AbstractProjectControlPane
             });
 
             $this->uiSkinName->text = '(Скин не выбран)';
-            $this->uiSkinName->textColor = 'gray';
+            $this->uiSkinName->classes->remove('dn-skin-name-active');
             $this->uiSkinName->font = UXFont::of('System', UiUtils::fontSize());
+
+            $isDarkSkin = false;
 
             if ($gui = GuiFrameworkProjectBehaviour::get()) {
                 $skin = $gui->getCurrentSkin();
 
                 if ($skin) {
                     $this->uiSkinName->text = $skin->getName();
-                    $this->uiSkinName->textColor = 'black';
+                    $this->uiSkinName->classes->add('dn-skin-name-active');
                     $this->uiSkinName->font = UXFont::of('System', UiUtils::fontSize(), 'BOLD');
+
+                    $isDarkSkin = $skin->getUid() === self::DARK_THEME_SKIN_UID;
                 }
             }
+
+            $this->uiThemeCombo->selectedIndex = $isDarkSkin ? 1 : 0;
         }
         // nop.
     }

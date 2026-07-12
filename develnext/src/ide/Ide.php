@@ -737,6 +737,50 @@ class Ide extends Application
         $this->getUserConfig('ide')->set($key, $value);
     }
 
+    const THEME_LIGHT = 'light';
+    const THEME_DARK = 'dark';
+
+    const DARK_THEME_STYLE = '/.theme/dark.css';
+
+    /**
+     * @return bool
+     */
+    public function isDarkTheme()
+    {
+        return $this->getUserConfigValue('ide.theme', self::THEME_LIGHT) === self::THEME_DARK;
+    }
+
+    /**
+     * Switch the IDE-wide UI theme, applying it immediately to every currently open
+     * window (not just newly created ones -- see Application::getLiveForms()).
+     *
+     * @param bool $enabled
+     */
+    public function setDarkTheme($enabled)
+    {
+        if ($enabled) {
+            $this->addStyle(self::DARK_THEME_STYLE);
+        } else {
+            $this->removeStyle(self::DARK_THEME_STYLE);
+        }
+
+        $this->setUserConfigValue('ide.theme', $enabled ? self::THEME_DARK : self::THEME_LIGHT);
+
+        // User config values are otherwise only flushed to disk in Ide::shutdown() -- save
+        // immediately so the theme choice survives a force quit / crash, not just a clean exit.
+        $this->getUserConfig('ide')->saveFile();
+
+        foreach ($this->getLiveForms() as $form) {
+            if ($enabled) {
+                if (!$form->hasStylesheet(self::DARK_THEME_STYLE)) {
+                    $form->addStylesheet(self::DARK_THEME_STYLE);
+                }
+            } else {
+                $form->removeStylesheet(self::DARK_THEME_STYLE);
+            }
+        }
+    }
+
     /**
      * Вернуть файл из папки, где находится сама IDE.
      *
@@ -1164,6 +1208,8 @@ class Ide extends Application
         } elseif ($path instanceof LazyLoadingImage) {
             $image = $path->getImage();
         } else {
+            $path = self::resolveThemedImagePath($path);
+
             if ($cache) {
                 $image = Cache::getResourceImage("res://.data/img/" . $path);
             } else {
@@ -1180,6 +1226,44 @@ class Ide extends Application
         }
 
         return $result;
+    }
+
+    /**
+     * Some icons (.data/img/icons/*.png) are flat, single-tone dark glyphs baked for a
+     * light background -- CSS can't recolor a PNG, so a light "*.dark-theme.png" twin is
+     * generated instead (see /.data/img/icons/*.dark-theme.png) and preferred here
+     * automatically whenever dark theme is active and one actually exists alongside the
+     * original, so every getImage() call site benefits without having to know about it.
+     *
+     * @param string $path
+     * @return string
+     */
+    protected static function resolveThemedImagePath($path)
+    {
+        static $variantExists = [];
+
+        if (!self::$instance || !self::$instance->isDarkTheme()) {
+            return $path;
+        }
+
+        $dotPos = strrpos($path, '.');
+
+        if ($dotPos === false) {
+            return $path;
+        }
+
+        $darkPath = substr($path, 0, $dotPos) . '.dark-theme' . substr($path, $dotPos);
+
+        if (!array_key_exists($darkPath, $variantExists)) {
+            try {
+                new ResourceStream("res://.data/img/$darkPath");
+                $variantExists[$darkPath] = true;
+            } catch (IOException $e) {
+                $variantExists[$darkPath] = false;
+            }
+        }
+
+        return $variantExists[$darkPath] ? $darkPath : $path;
     }
 
     /**

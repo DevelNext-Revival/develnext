@@ -29,6 +29,7 @@
                                         <Menu id="menuRun" text="{menu.run}"/>
                                         <Menu id="menuHelp" text="{menu.help}"/>
                                         <Menu id="menuL10n" text="Language" />
+                                        <Menu id="menuTheme" text="Theme" />
                                         <Menu id="menuCreate" disable="true" mnemonicParsing="false"
                                               style="-fx-text-fill: transparent; -fx-pref-width: 0; -fx-font-size: 0;"
                                               text="..."/>

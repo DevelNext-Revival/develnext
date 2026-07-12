@@ -1,0 +1,181 @@
+/*
+ * Dark theme override, loaded on top of /.theme/style.css and
+ * /php/gui/framework/style.css (see Ide::setDarkTheme()).
+ *
+ * Most controls just need the core Modena palette variables re-pointed here --
+ * both base stylesheets already build almost everything from -fx-color/-fx-base
+ * derivatives (-fx-body-color, -fx-outer-border, -fx-text-base-color, etc.), so
+ * overriding the root palette flips buttons, menus, scrollbars, tabs, and list/
+ * tree/table views automatically via JavaFX's own derive() chains. Only the
+ * selectors below that hardcode a literal color (white/silver/gray/#hex) instead
+ * of a variable need an explicit dark override.
+ */
+
+.root {
+    -fx-base: #3c3f41;
+    -fx-background: #3c3f41;
+    -fx-control-inner-background: #2b2b2b;
+    -fx-control-inner-background-alt: -fx-control-inner-background;
+
+    -fx-text-base-color: #bbbbbb;
+    -fx-text-inner-color: #bbbbbb;
+    -fx-mark-color: #bbbbbb;
+    -fx-light-text-color: #f0f0f0;
+    -fx-dark-text-color: #bbbbbb;
+    -fx-mid-text-color: #999999;
+    -fx-focused-text-base-color: #ffffff;
+
+    -fx-accent: #4a88c7;
+    -fx-default-button: #4a88c7;
+    -fx-focus-color: #4a88c7;
+    -fx-faint-focus-color: #4a88c722;
+
+    -fx-selection-bar: #2f65ca;
+    -fx-selection-bar-non-focused: #515658;
+
+    -fx-outer-border: #1e1e1e;
+    -fx-inner-border: #4b4b4b;
+    -fx-hover-base: derive(-fx-base, 15%);
+
+    -fx-shadow-highlight-color: transparent;
+}
+
+.flat-button { -fx-background-color: #3c3f41; }
+.flat-button:hover { -fx-background-color: #4b4e50; }
+
+/*
+ * These icons are flat, single-tone dark-gray/black glyphs (baked into the PNG, so
+ * CSS alone can't recolor them) drawn for a light background -- generated
+ * *.dark-theme.png light-gray twins live alongside the originals in
+ * /.data/img/icons/ for use here instead.
+ */
+.icon-flat-edit { -fx-graphic: url("/.data/img/icons/flatEdit16.dark-theme.png"); }
+.icon-flat-delete { -fx-graphic: url("/.data/img/icons/flatDelete16.dark-theme.png"); }
+.icon-flat-gallery { -fx-graphic: url("/.data/img/icons/flatGallery16.dark-theme.png"); }
+.icon-flat-refresh { -fx-graphic: url("/.data/img/icons/flatRefresh16.dark-theme.png"); }
+.icon-flat-account { -fx-graphic: url("/.data/img/icons/account16.dark-theme.png"); }
+.icon-flat-search { -fx-graphic: url("/.data/img/icons/flatSearch16.dark-theme.png"); }
+.icon-plus { -fx-graphic: url("/.data/img/icons/plus16.dark-theme.png"); }
+.icon-rabbit-food { -fx-graphic: url("/.data/img/icons/rabbitFood16.dark-theme.png"); }
+.icon-trash { -fx-graphic: url("/.data/img/icons/trash16.dark-theme.png"); }
+
+.btn-link { -fx-text-fill: #6db3ff; }
+
+.list-view .list-cell:filled:selected:focused, .list-view .list-cell:filled:selected {
+    -fx-background-color: #2f65ca;
+}
+
+.list-view.dn-simple-list:filled:selected:focused, .list-view.dn-simple-list .list-cell:filled:selected {
+    -fx-background-color: #2b2b2b;
+}
+
+.list-view.dn-simple-list .list-cell:odd {
+    -fx-cell-hover-color: #323232;
+    -fx-background-color: #2b2b2b;
+}
+
+.context-menu {
+    -fx-background-color: #3c3f41;
+    -fx-border-color: #555555;
+    -fx-border-width: 1px;
+}
+
+.dn-list-item { -fx-border-color: #555555; -fx-cursor: hand; -fx-background-color: #3c3f41; }
+.dn-list-item:hover { -fx-border-color: #ff6b5e; }
+
+.dn-list-menu-title { -fx-text-fill: #dddddd; }
+.dn-list-menu-description { -fx-text-fill: #999999; }
+.dn-list-menu-count { -fx-background-color: #6b6f71; -fx-text-fill: #f0f0f0; }
+
+.flow-list-view { -fx-background-color: #3c3f41; -fx-border-color: #555555; }
+.flow-list-view .list-cell { -fx-cursor: hand; }
+.flow-list-view .list-cell.selected { -fx-background-color: #4b6eaf; }
+.flow-list-view .list-cell.hovered { -fx-border-color: #999999; }
+
+.dn-list-hint { -fx-text-fill: #777777; }
+
+.dn-simple-toggle-button:hover { -fx-background-color: #395878; -fx-border-color: #5a71a7; }
+.dn-simple-toggle-button:selected { -fx-background-color: #555555; -fx-border-color: #777777; }
+.dn-simple-toggle-button, .dn-simple-button { -fx-background-color: #3c3f41; -fx-border-color: #555555; }
+
+.dn-autocomplete { -fx-border-color: #555555; }
+.dn-autocomplete-description { -fx-background-color: #45483a; }
+.dn-autocomplete-description .description { -fx-text-fill: #999999; }
+.dn-autocomplete-description .content .label { -fx-text-fill: #999999; }
+
+.account-menu-item:hover { -fx-background-color: #4b4e50; }
+
+.tab-pane.dn-style .tab-content-area { -fx-border-color: #555555; }
+
+.dn-web { -fx-background-color: #3c3f41; }
+
+.doc-entry { -fx-background-color: #333333; -fx-border-color: #555555; }
+.doc-entry .description { -fx-text-fill: #999999; }
+
+/* Was a hardcoded inline #fffe85 (bright yellow) on ModuleListPropertyEditor's text
+   field -- moved to this class so it can be themed like everything else. */
+.dn-module-list-field { -fx-background-color: #6b6a3a; -fx-text-fill: #f0f0f0; }
+
+/* Was a hardcoded inline "silver" background (IdPropertyEditor's read-only id field)
+   with no explicit text-fill, so it inherited whatever light-on-dark text color the
+   rest of the theme uses -- unreadable against a still-light silver box. */
+.dn-id-property-field { -fx-background-color: #55585a; -fx-text-fill: #f0f0f0; }
+
+/* Was a hardcoded inline "black" (DesignProjectControlPane's selected-skin-name label). */
+.dn-skin-name-active { -fx-text-fill: #f0f0f0; }
+
+/* Was a hardcoded Java-side setTextFill(Color.GRAY.darker()) on the property grid's
+   name column (UXDesignProperties.java's NameCell) -- CSS alone could never reach it
+   until that call was replaced with this style class. */
+.dn-property-name-cell { -fx-text-fill: #9a9a9a; }
+
+/* .nav (framework style.css) */
+.nav .nav-item.selected { -fx-background-color: #4b6eaf; -fx-border-color: #5a71a7; }
+.nav .nav-hint-text { -fx-text-fill: #999999; }
+.nav .nav-hint-total { -fx-text-fill: #999999; }
+
+.combo-box > .list-cell:hover { -fx-background-color: #4b4e50; }
+
+/* Tab pane selected background hardcodes "white" in style.css */
+.dn-file-tab-pane > .tab-header-area > .headers-region > .tab:selected {
+    -fx-background-color: -fx-outer-border, -fx-inner-border, #3c3f41;
+}
+.dn-file-tab-pane > .tab-header-area > .headers-region > .tab:selected > .tab-container > .tab-label {
+    -fx-text-fill: #7fb2ea;
+}
+.dn-file-tab-pane:top > .tab-header-area > .tab-header-background {
+    -fx-border-color: #3c3f41, #1e1e1e;
+}
+
+/*
+ * -fx-background-color doesn't inherit to child nodes in JavaFX CSS, so a rule on
+ * .scroll-pane alone (see framework style.css) doesn't reach the .viewport region
+ * inside it -- that falls through to Modena's own default (light) background.
+ * Affects any plain, unstyled ScrollPane, e.g. the form designer's component
+ * palette (FormEditor.php wraps FormElementTypePane's content in a bare
+ * UXScrollPane with no style class).
+ */
+.scroll-pane > .viewport {
+    -fx-background-color: -fx-control-inner-background;
+}
+
+.titled-pane > .content {
+    -fx-background-color: -fx-control-inner-background;
+    -fx-border-color: -fx-outer-border;
+}
+
+/*
+ * The Run/build output console (BuildProgressForm.php) builds its own RichTextArea in
+ * Java-side code (#consoleArea, class dn-console-list) rather than using anything
+ * already covered above, and its #content/#header/#bottomPane containers have no style
+ * class at all -- both need explicit dark rules or they stay stuck on Modena's default
+ * light background regardless of theme.
+ */
+.dn-console-list, .dn-console-list .styled-text-area {
+    -fx-background-color: -fx-control-inner-background;
+    -fx-text-fill: -fx-text-base-color;
+}
+
+#content, #header, #bottomPane {
+    -fx-background-color: -fx-background;
+}

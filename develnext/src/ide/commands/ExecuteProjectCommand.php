@@ -195,7 +195,10 @@ class ExecuteProjectCommand extends AbstractCommand
 
     protected function createExecuteProcess(Project $project): Process
     {
-        $classPaths = flow($this->behaviour->getSourceDirectories(), $this->behaviour->getProfileModules(['jar']))
+        // flow() only ever accepted a single iterable (see JPHP-INF/sdk/.functions.php) --
+        // this always called it with two array arguments, so Run has apparently never
+        // actually worked in this revived build until now.
+        $classPaths = flow(array_merge($this->behaviour->getSourceDirectories(), $this->behaviour->getProfileModules(['jar'])))
             ->toArray();
 
         $args = [
