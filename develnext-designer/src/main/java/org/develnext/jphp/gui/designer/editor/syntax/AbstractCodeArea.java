@@ -5,6 +5,7 @@ import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.event.Event;
 import javafx.event.EventHandler;
+import javafx.geometry.Point2D;
 import javafx.scene.input.*;
 import org.develnext.jphp.gui.designer.editor.inspect.AbstractInspector;
 import org.develnext.jphp.gui.designer.editor.syntax.hotkey.*;
@@ -12,6 +13,7 @@ import org.develnext.jphp.gui.designer.editor.syntax.popup.CodeAreaContextMenu;
 import org.develnext.jphp.gui.designer.editor.syntax.popup.CodeAreaPopup;
 import org.fxmisc.flowless.VirtualFlow;
 import org.fxmisc.richtext.CodeArea;
+import org.fxmisc.richtext.event.MouseOverTextEvent;
 import org.fxmisc.richtext.model.RichTextChange;
 import org.fxmisc.richtext.model.StyleSpans;
 import org.fxmisc.richtext.model.StyleSpansBuilder;
@@ -48,6 +50,15 @@ abstract public class AbstractCodeArea extends CodeArea {
     private EventHandler<ActionEvent> onBeforeChange;
     private EventHandler<ActionEvent> onAfterChange;
     private EventHandler<ActionEvent> onPaste;
+    private EventHandler<ActionEvent> onHoverStart;
+    private EventHandler<ActionEvent> onHoverEnd;
+
+    // Set right before onHoverStart/onHoverEnd fire, read back from PHP the same way
+    // caretLine/caretOffset already are -- avoids inventing a new value-returning
+    // cross-language callback shape just for this.
+    private int hoverCharacterIndex = -1;
+    private double hoverScreenX;
+    private double hoverScreenY;
 
     private double fontSize;
 
@@ -90,6 +101,28 @@ abstract public class AbstractCodeArea extends CodeArea {
                     }
                 })
                 .subscribe(this::applyHighlighting);
+
+        setMouseOverTextDelay(Duration.ofMillis(400));
+
+        addEventHandler(MouseOverTextEvent.MOUSE_OVER_TEXT_BEGIN, e -> {
+            hoverCharacterIndex = e.getCharacterIndex();
+
+            Point2D screenPos = e.getScreenPosition();
+            hoverScreenX = screenPos.getX();
+            hoverScreenY = screenPos.getY();
+
+            if (onHoverStart != null) {
+                onHoverStart.handle(new ActionEvent(this, this));
+            }
+        });
+
+        addEventHandler(MouseOverTextEvent.MOUSE_OVER_TEXT_END, e -> {
+            hoverCharacterIndex = -1;
+
+            if (onHoverEnd != null) {
+                onHoverEnd.handle(new ActionEvent(this, this));
+            }
+        });
 
         Nodes.addInputMap(this, InputMap.consume(keyReleased(), e -> {
             if (!isEditable()) {
@@ -144,6 +177,34 @@ abstract public class AbstractCodeArea extends CodeArea {
 
     public void setOnPaste(EventHandler<ActionEvent> onPaste) {
         this.onPaste = onPaste;
+    }
+
+    public EventHandler<ActionEvent> getOnHoverStart() {
+        return onHoverStart;
+    }
+
+    public void setOnHoverStart(EventHandler<ActionEvent> onHoverStart) {
+        this.onHoverStart = onHoverStart;
+    }
+
+    public EventHandler<ActionEvent> getOnHoverEnd() {
+        return onHoverEnd;
+    }
+
+    public void setOnHoverEnd(EventHandler<ActionEvent> onHoverEnd) {
+        this.onHoverEnd = onHoverEnd;
+    }
+
+    public int getHoverCharacterIndex() {
+        return hoverCharacterIndex;
+    }
+
+    public double getHoverScreenX() {
+        return hoverScreenX;
+    }
+
+    public double getHoverScreenY() {
+        return hoverScreenY;
     }
 
     public double getLineHeight() {

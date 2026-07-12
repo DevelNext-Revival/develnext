@@ -4,6 +4,7 @@ namespace ide\editors;
 use Files;
 use ide\autocomplete\AutoComplete;
 use ide\autocomplete\php\PhpAutoComplete;
+use ide\autocomplete\php\PhpEditorAssistant;
 use ide\autocomplete\ui\AutoCompletePane;
 use ide\editors\menu\ContextMenu;
 use ide\forms\AbstractIdeForm;
@@ -119,6 +120,11 @@ class CodeEditor extends AbstractEditor
      * @var AutoCompletePane
      */
     protected $autoComplete;
+
+    /**
+     * @var PhpEditorAssistant
+     */
+    protected $editorAssistant;
 
 
     /**
@@ -237,6 +243,11 @@ class CodeEditor extends AbstractEditor
                         $this->executeCommand('replace');
                         $e->consume();
                         return;
+                    case 'B':
+                        if ($this->editorAssistant && $this->editorAssistant->goToDefinition()) {
+                            $e->consume();
+                        }
+                        return;
                 }
             }
 
@@ -245,6 +256,10 @@ class CodeEditor extends AbstractEditor
 
         if ($options['autoComplete'] instanceof AutoComplete) {
             $this->autoComplete = new AutoCompletePane($this->textArea, $options['autoComplete']);
+
+            if ($this->textArea instanceof UXPhpCodeArea) {
+                $this->editorAssistant = new PhpEditorAssistant($this->textArea, $options['autoComplete']);
+            }
         }
 
         $this->resetSettings();

@@ -9,6 +9,7 @@ import org.fxmisc.richtext.model.Paragraph;
 import php.runtime.Memory;
 import php.runtime.annotation.Reflection.*;
 import php.runtime.env.Environment;
+import php.runtime.invoke.Invoker;
 import php.runtime.memory.ArrayMemory;
 import php.runtime.memory.StringMemory;
 import php.runtime.reflection.ClassEntity;
@@ -55,6 +56,7 @@ public class UXAbstractCodeArea<T extends AbstractCodeArea> extends UXRegion<Abs
                     return target.getOnPaste();
                 }
             });
+
         }
 
         @Override
@@ -140,6 +142,49 @@ public class UXAbstractCodeArea<T extends AbstractCodeArea> extends UXRegion<Abs
         } catch (IndexOutOfBoundsException e) {
             // nop.
         }
+    }
+
+    @Getter
+    public int getHoverCharacterIndex() {
+        return getWrappedObject().getHoverCharacterIndex();
+    }
+
+    @Getter
+    public double getHoverScreenX() {
+        return getWrappedObject().getHoverScreenX();
+    }
+
+    @Getter
+    public double getHoverScreenY() {
+        return getWrappedObject().getHoverScreenY();
+    }
+
+    // Plain @Signature methods rather than the generic ->on('name', ...) EventProvider
+    // mechanism: EventProvider.setHandler() (used for beforeChange/afterChange/paste
+    // above) stores handlers under whatever case is passed to it, but fetchHandler()
+    // looks them up lowercased, so anything registered that way is unreachable through
+    // ->on(...) -- confirmed by testing, not just reading. This mirrors the
+    // onButtonRender(Environment, Invoker)-style pattern used elsewhere instead.
+    @Signature
+    public void onHoverStart(final Environment env, @Nullable final Invoker invoker) {
+        getWrappedObject().setOnHoverStart(invoker == null ? null : event -> {
+            try {
+                invoker.callAny();
+            } catch (Throwable t) {
+                env.wrapThrow(t);
+            }
+        });
+    }
+
+    @Signature
+    public void onHoverEnd(final Environment env, @Nullable final Invoker invoker) {
+        getWrappedObject().setOnHoverEnd(invoker == null ? null : event -> {
+            try {
+                invoker.callAny();
+            } catch (Throwable t) {
+                env.wrapThrow(t);
+            }
+        });
     }
 
     @Getter
