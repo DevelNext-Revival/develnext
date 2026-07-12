@@ -42,6 +42,7 @@ use ide\project\AbstractProjectBehaviour;
 use ide\project\control\CommonProjectControlPane;
 use ide\project\control\DesignProjectControlPane;
 use ide\project\control\FormsProjectControlPane;
+use ide\project\control\GitProjectControlPane;
 use ide\project\control\ModulesProjectControlPane;
 use ide\project\control\SpritesProjectControlPane;
 use ide\project\Project;
@@ -261,6 +262,7 @@ class GuiFrameworkProjectBehaviour extends AbstractProjectBehaviour
         $projectFormat->addControlPanes([
             new CommonProjectControlPane(),
             new DesignProjectControlPane(),
+            new GitProjectControlPane(),
 
             new FormsProjectControlPane(),
             new ModulesProjectControlPane(),

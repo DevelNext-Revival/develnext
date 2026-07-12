@@ -277,6 +277,7 @@ project(':develnext') {
         compile "org.develnext.jphp:jphp-zend-ext:$jphpVersion"
         compile "org.develnext.jphp:jphp-sql-ext:$jphpVersion"
         compile "org.develnext.jphp:jphp-debugger:$jphpVersion"
+        compile "org.develnext.jphp:jphp-git-ext:$jphpVersion"
 
         compile "org.develnext.framework:modules/wizard-localization:$wizardVersion"
 
